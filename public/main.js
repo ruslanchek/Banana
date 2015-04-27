@@ -384,7 +384,7 @@ var Data = function(){
             data.push([points[i].time / 1000, points[i].value]);
         }
 
-        if(data.length > (60 * config.stepsX) - 21){
+        if(data.length > (60 * config.stepsX) - 19){
             data.shift();
         }
 
