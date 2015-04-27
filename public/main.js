@@ -30,8 +30,18 @@ var Diagram = function(canvas, context){
         return (((val - startPos) / 60) * _sizes.stepWidth + _sizes.offsetX) + .5;
     }
 
-    function calcY(val){
-        return _sizes.height - (val * _sizes.stepHeight) + _sizes.offsetY + .5;
+    function calcY(val, min, max){
+        var step = ((min * _sizes.height) / (max * _sizes.offsetY));
+
+        // v = 1.5 min = 1, max = 2, h = 0, hh = 600 vv = 450
+
+        // val = _sizes.height * ((max - min) / val);
+
+        y = val = (_sizes.height * val) / max;
+
+        console.log(y)
+
+        return y;
     }
 
     this.draw = function(points, sizes){
@@ -40,9 +50,26 @@ var Diagram = function(canvas, context){
         context.beginPath();
         context.lineWidth = config.diagramStrokeWidth;
         context.strokeStyle = config.diagramStrokeColor;
+
+        var min = 0, 
+            max = 0, 
+            minCountArr = [];
+
+        for(var i = 0, l = points.length; i < l; i++){
+            if(points[i][1] > max){
+                max = points[i][1];
+            }
+
+            minCountArr.push(points[i][1]);
+        }
+
+        min = Math.min.apply(Math, minCountArr);
         
         for(var i = 0, l = points.length; i < l; i++){
-            context.lineTo(calcX(points[i][0], points[0][0]), calcY(points[i][1]));
+            context.lineTo(
+                calcX(points[i][0], points[0][0]),
+                calcY(points[i][1], min, max)
+            );
         }
 
         // br
@@ -52,7 +79,10 @@ var Diagram = function(canvas, context){
         context.lineTo(_sizes.offsetX + .5, _sizes.height + _sizes.offsetY - .5);
 
         // tl
-        context.lineTo(calcX(points[0][0], points[0][0]), calcY(points[0][1]));
+        context.lineTo(
+            calcX(points[0][0], points[0][0]), 
+            calcY(points[0][1], min, max)
+        );
 
         context.stroke();
 
@@ -138,6 +168,7 @@ var Grid = function(canvas, context){
 
     this.draw = function(dataX, dataY){
         countSizes(dataX.length, dataY.length);
+
         drawX(dataX);
         drawY(dataY);
     };
@@ -164,35 +195,20 @@ var Plot = function(canvasId){
         diagram = new Diagram(canvas, context);
 
     function getGridX(data){
-        var min = 0,
-            max = 0,
+        var min = data[0][0],
             result = [],
-            steps = config.stepsX,
-            minCountArr = [];
-
-        for(var i = 0, l = data.length; i < l; i++){
-            minCountArr.push(data[i][0]);
-        }
-
-        min = Math.min.apply(Math, minCountArr);
-
-        for(var i = 0, l = data.length; i < l; i++){
-            if(max < data[i][0]){
-                max = data[i][0];
-            }
-        }
-
-        var range = max - min,
-            rangeStep = range / config.stepsX,
-            curr = min,
             i = 0;
 
         while(i < config.stepsX){
+            var date = new Date(min * 1000);
+
+            date.setMinutes(date.getMinutes() + i);
+
+            var item = date.getTime() / 1000;
+
+            result.push(item);
+
             i++;
-
-            curr += rangeStep;
-
-            result.push(curr);
         }
 
         return result;
@@ -296,16 +312,15 @@ var Data = function(){
     var ws,
         plot = new Plot('scene-1'),
         data = [];
+        loading = document.getElementById('loading');
 
     function setWS(){
         ws = new WebSocket(config.socket);
 
         ws.onopen = function(event) {
-            var loading = document.getElementById('loading');
-
             setTimeout(function(){
                 loading.className = 'ready';
-                loading.innerHTML = 'Connected to server';
+                loading.innerHTML = 'Loading...';
 
                 setTimeout(function(){
                     loading.className = 'hidden';
@@ -322,6 +337,8 @@ var Data = function(){
         };
 
         ws.onmessage = function(event) {
+            loading.className = 'hidden';
+
             var data = {};
 
             try {
@@ -414,14 +431,49 @@ var Data = function(){
         plot.clearCanvas();
     }
 
+    var chjX = [];
+        var chjY = [];
+
     function pushPlotData(points){
+
+        
+
         for(var i = 0, l = points.length; i < l; i++){
+
+
             data.push([points[i].time / 1000, points[i].value]);
+
+            chjX.push(points[i].time);
+            chjY.push(points[i].value);
         }
 
-        console.log(points)
+        if(data.length > (60 * config.stepsX) - 1){
+            data.shift();
+        }
 
         plot.draw(data);
+
+
+        var ctx = document.getElementById("myChart").getContext("2d");
+
+        var d = {
+            labels: chjX,
+            datasets: [
+                {
+                    label: "My First dataset",
+                    fillColor: "rgba(220,220,220,0.2)",
+                    strokeColor: "rgba(220,220,220,1)",
+                    pointColor: "rgba(220,220,220,1)",
+                    pointStrokeColor: "#fff",
+                    pointHighlightFill: "#fff",
+                    pointHighlightStroke: "rgba(220,220,220,1)",
+                    data: chjY
+                }
+            ]
+        };
+
+        var myLineChart = new Chart(ctx).Line(d);
+
     }
 
     setWS();
