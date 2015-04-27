@@ -1,15 +1,17 @@
 var config = {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'Arial',
     textColor: '#000',
-    diagramStrokeColor: '#D8772A',
-    diagramFillColor: 'rgba(253, 166, 86, .75)',
+    diagramStrokeColor: '#FFC701',
+    diagramFillColor: 'RGBA(255, 199, 1, .35)',
     diagramStrokeWidth: 1,
     stepsY: 8,
     stepsX: 5,
     gridOffsetX: 80,
     gridOffsetY: 40,
-    gridStrokeColor: '#ccc'
+    gridStrokeColor: '#ccc',
+    socket: 'ws://104.131.7.135:8080/socket',
+    authToken: 'fredclark201590@gmail.com/fredclark201590@gmail.com'
 };
 
 var Line = function(x1, y1, x2, y2, color, strokeWidth, context){
@@ -228,12 +230,12 @@ var Plot = function(canvasId){
         return result;
     }
 
-    function clearCanvas(){
+    this.clearCanvas = function(){
         context.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     this.draw = function(data){
-        clearCanvas();
+        this.clearCanvas();
 
         var gridData = {
             x: getGridX(data),
@@ -246,84 +248,91 @@ var Plot = function(canvasId){
     };
 };
 
-var Drawer = function(container){
-    var plot = new Plot(container);
+// var Drawer = function(container){
+//     var plot = new Plot(container);
 
-    function randomFloatBetween(minValue, maxValue, precision){
-        return parseFloat(Math.min(minValue + (Math.random() * (maxValue - minValue)), maxValue).toFixed(precision));
-    }
+//     function randomFloatBetween(minValue, maxValue, precision){
+//         return parseFloat(Math.min(minValue + (Math.random() * (maxValue - minValue)), maxValue).toFixed(precision));
+//     }
 
-    var date = new Date(),
-        start = date.getTime() / 1000;
+//     var date = new Date(),
+//         start = date.getTime() / 1000;
 
-    var x = start,
-        y = randomFloatBetween(2, 5),
-        data = [
-            [x, y]
-        ];
+//     var x = start,
+//         y = randomFloatBetween(2, 5),
+//         data = [
+//             [x, y]
+//         ];
 
-    var i = config.stepsX * 60;
+//     var i = config.stepsX * 60;
 
-    while(i > 0){
-        i--;
-        date.setSeconds(date.getSeconds() + 1);
-        x = date.getTime() / 1000;
-        y += randomFloatBetween(-0.1, 0.1, 3);
+//     while(i > 0){
+//         i--;
+//         date.setSeconds(date.getSeconds() + 1);
+//         x = date.getTime() / 1000;
+//         y += randomFloatBetween(-0.1, 0.1, 3);
 
-        data.push([x, y]);
+//         data.push([x, y]);
 
-        plot.draw(data);
-    }
+//         plot.draw(data);
+//     }
 
-    setInterval(function(){
-        date.setSeconds(date.getSeconds() + 1);
-        x = date.getTime() / 1000;
-        y += randomFloatBetween(-0.1, 0.1, 3);
+//     setInterval(function(){
+//         date.setSeconds(date.getSeconds() + 1);
+//         x = date.getTime() / 1000;
+//         y += randomFloatBetween(-0.1, 0.1, 3);
 
-        data.push([x, y]);
+//         data.push([x, y]);
 
-        if(data.length > (60 * 5) - 1){
-            data.shift();
-        }
+//         if(data.length > (60 * 5) - 1){
+//             data.shift();
+//         }
 
-        plot.draw(data);
-    }, 1000);
-};
+//         plot.draw(data);
+//     }, 1000);
+// };
 
 var Data = function(){
-    var ws = new WebSocket('ws://104.131.7.135:8080/socket');
+    var ws,
+        plot = new Plot('scene-1'),
+        data = [];
 
-    ws.onopen = function(event) {
-        var loading = document.getElementById('loading');
+    function setWS(){
+        ws = new WebSocket(config.socket);
 
-        setTimeout(function(){
-            loading.className = 'ready';
-            loading.innerHTML = 'Connected to server';
+        ws.onopen = function(event) {
+            var loading = document.getElementById('loading');
 
             setTimeout(function(){
-                loading.className = 'hidden';
-            }, 1500);
-        
-            ws.send(JSON.stringify({
-                action:"token",
-                message: {
-                    token: "fredclark201590@gmail.com/fredclark201590@gmail.com"
-                }
-            }));
+                loading.className = 'ready';
+                loading.innerHTML = 'Connected to server';
 
-        }, 1000);
-    };
+                setTimeout(function(){
+                    loading.className = 'hidden';
+                }, 1500);
+            
+                ws.send(JSON.stringify({
+                    action: 'token',
+                    message: {
+                        token: config.authToken
+                    }
+                }));
 
-    ws.onmessage = function(event) {
-        var data = {};
-        try {
-            data = JSON.parse(event.data);
-        } catch(e){
-            data = {error: true};
-        }
+            }, 1000);
+        };
 
-        processData(data);
-    };
+        ws.onmessage = function(event) {
+            var data = {};
+
+            try {
+                data = JSON.parse(event.data);
+            } catch(e){
+                data = {error: true};
+            }
+
+            processData(data);
+        };
+    }
 
     function setUserData(data){
         if(data.name){
@@ -340,15 +349,86 @@ var Data = function(){
         }
     }
 
+    function setAssetsData(assets){
+        var html = '',
+            selector = document.getElementById('asset-type'),
+            selected = '';
+
+        for(var i = 0, l = assets.length; i < l; i++){
+            if(assets[0].id == assets[i].id){
+                selected = 'selected';
+            }else{
+                selected = '';
+            }
+
+            html += '<option ' + selected + ' value="' + assets[i].id + '">' + assets[i].name + '</option>';
+        }
+
+        selector.innerHTML = html;
+
+        selector.addEventListener('change', function(e){
+            selectAsset(e.target.value);
+        });
+
+        selector.parentNode.className = 'asset-type-selector';
+
+        selectAsset(assets[0].id);
+    }
+
     function processData(data){
-        if(data && data.message){
-            // First step
-            setUserData(data.message);
+        if(data && data.message && data.action){
+            if(data.action == 'profile'){
+                setUserData(data.message);
+            }
+            
+            if(data.action == 'assets'){
+                setAssetsData(data.message.assets);
+            }
+
+            if(data.action == 'asset_history'){
+                pushPlotData(data.message.points);
+            }
+
+            if(data.action == 'point'){
+                pushPlotData([data.message]);
+            }
         }
     }
+
+    function subscribeToAssetData(id){
+        ws.send(JSON.stringify({
+            action: 'subscribe',
+                'message': {
+                'assetId': id
+            }
+        }));
+    }
+
+    function clearData(){
+        data = [];
+    }
+
+    function selectAsset(id){
+        subscribeToAssetData(id);
+        clearData();
+        plot.clearCanvas();
+    }
+
+    function pushPlotData(points){
+        for(var i = 0, l = points.length; i < l; i++){
+            data.push([points[i].time / 1000, points[i].value]);
+        }
+
+        console.log(points)
+
+        plot.draw(data);
+    }
+
+    setWS();
 };
 
+var data;
+
 window.onload = function() {
-    new Data();
-    new Drawer('scene-1');
+    data = new Data();
 };

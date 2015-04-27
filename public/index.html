@@ -8,18 +8,20 @@
 </head>
 <body>
   <main>
-    <h1>Banana Indicator</h1>
+    <header>
+      <h1>Banana Indicator</h1>
 
-    <div id="loading">Connecting...</div>
+      <div id="loading">Connecting...</div>
 
-    <h2 id="username" class="hidden">&nbsp;</h2>
+      <h2 id="username" class="hidden">&nbsp;</h2>
+    </header>
 
     <div class="diagram">
     	<header>
-  	  	<select id="diag-type">
-  	  		<option value="1">USD</option>
-  	  		<option value="2">EUR</option>
-  	  	</select>
+  	  	<label class="asset-type-selector hidden">
+          Select your preferred asset: 
+          <select id="asset-type"></select>
+        </label>
     	</header>
     	<canvas id="scene-1" width="800" height="430"></canvas>
     </div>

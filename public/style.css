@@ -1,5 +1,5 @@
 body {
-	padding 40px;
+	padding: 30px 0;
 	font-family: Arial;
 }
 
@@ -8,10 +8,15 @@ main {
 	margin: 0 auto;
 }
 
+main > header {
+	padding: 0 100px 0 80px;
+}
+
 .diagram {
 	background: #f9f9f9;
 	border-radius: 5px;
 	width: 820px;
+	padding: 20px 0 60px;
 }
 
 .diagram header {
@@ -19,7 +24,7 @@ main {
 }
 
 #loading {
-	background: #FDA656;
+	background: #ddd;
 	font-size: 1.2em;
 	padding: 10px 20px;
 	border-radius: 5px;
@@ -37,12 +42,41 @@ main {
 	opacity: 0;
 }
 
+h1 {
+	position: relative;
+	padding-left: 0;
+	margin-bottom: 30px;
+}
+
+h1:before {
+	background: url(../img/banana.png) no-repeat;
+	background-size: contain;
+	content: '';
+	display: block;
+	position: absolute;
+	top: 50%;
+	left: -70px;
+	margin-top: -22px;
+	width: 56px;
+	height: 56px;
+}
+
 h2 {
 	color: #666;
 	transition: .2s;
 	-webkit-transition: .2s;
+	margin-bottom: 40px;
 }
 
 h2 span {
 	color: #000;
+}
+
+.asset-type-selector {
+	transition: .2s;
+	-webkit-transition: .2s;
+}
+
+select {
+	font-size: 16px;
 }
