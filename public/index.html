@@ -7,6 +7,21 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Banana Indicator</h1>
-  <canvas id="scene-1" width="800" height="430"></canvas>
+  <main>
+    <h1>Banana Indicator</h1>
+
+    <div id="loading">Connecting...</div>
+
+    <h2 id="username" class="hidden">&nbsp;</h2>
+
+    <div class="diagram">
+    	<header>
+  	  	<select id="diag-type">
+  	  		<option value="1">USD</option>
+  	  		<option value="2">EUR</option>
+  	  	</select>
+    	</header>
+    	<canvas id="scene-1" width="800" height="430"></canvas>
+    </div>
+  </main>
 </body>

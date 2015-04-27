@@ -2,12 +2,13 @@ var config = {
     fontSize: 12,
     fontFamily: 'Arial',
     textColor: '#000',
-    diagramStrokeColor: '#000',
+    diagramStrokeColor: '#D8772A',
+    diagramFillColor: 'rgba(253, 166, 86, .75)',
     diagramStrokeWidth: 1,
     stepsY: 8,
     stepsX: 5,
-    gridOffsetX: 60,
-    gridOffsetY: 60,
+    gridOffsetX: 80,
+    gridOffsetY: 40,
     gridStrokeColor: '#ccc'
 };
 
@@ -23,12 +24,12 @@ var Line = function(x1, y1, x2, y2, color, strokeWidth, context){
 var Diagram = function(canvas, context){
     var _sizes;
 
-    function calcX(val){
-        return val * _sizes.stepWidth + _sizes.offsetX;
+    function calcX(val, startPos){
+        return (((val - startPos) / 60) * _sizes.stepWidth + _sizes.offsetX) + .5;
     }
 
     function calcY(val){
-        return _sizes.height - (val * _sizes.stepHeight) + _sizes.offsetY;
+        return _sizes.height - (val * _sizes.stepHeight) + _sizes.offsetY + .5;
     }
 
     this.draw = function(points, sizes){
@@ -39,10 +40,23 @@ var Diagram = function(canvas, context){
         context.strokeStyle = config.diagramStrokeColor;
         
         for(var i = 0, l = points.length; i < l; i++){
-            context.lineTo(calcX(points[i][0]), calcY(points[i][1]));
+            context.lineTo(calcX(points[i][0], points[0][0]), calcY(points[i][1]));
         }
 
+        // br
+        context.lineTo(calcX(points[points.length - 1][0], points[0][0]), _sizes.height + _sizes.offsetY - .5);
+
+        // bl
+        context.lineTo(_sizes.offsetX + .5, _sizes.height + _sizes.offsetY - .5);
+
+        // tl
+        context.lineTo(calcX(points[0][0], points[0][0]), calcY(points[0][1]));
+
         context.stroke();
+
+        context.fillStyle = config.diagramFillColor;
+
+        context.fill();
     }
 };
 
@@ -69,7 +83,17 @@ var Grid = function(canvas, context){
         stepWidth = 0,
         stepHeight = 0,
         cWidth = canvas.width,
-        cHeight = canvas.height;
+        cHeight = canvas.height,
+        startOffsetX = 0;
+
+    var timeConvert = function(val){
+        var date = new Date(Math.floor(val) * 1000),
+            h = (date.getHours() >= 10) ? date.getHours() : '0' + date.getHours(),
+            m = (date.getMinutes() >= 10) ? date.getMinutes() : '0' + date.getMinutes(),
+            text = h + ':' + m + ':00';
+
+        return text;
+    };
 
     var drawX = function(items){
         var steps = items.length;
@@ -80,8 +104,10 @@ var Grid = function(canvas, context){
             var x = (stepWidth * steps) + .5 + offsetX;
 
             new Line(x, offsetY, x, height + offsetY, config.gridStrokeColor, 1, context);
-            new Text(x, height + offsetY + 20, items[steps], context, true, false);
+            new Text(x, height + offsetY + 20, timeConvert(items[steps]), context, true, false);
         }
+
+        startOffsetX = items[0];
 
         new Line(offsetX, offsetY - .5, width + offsetX, offsetY - .5, config.gridStrokeColor, 1, context);
     }
@@ -123,7 +149,8 @@ var Grid = function(canvas, context){
             stepWidth: stepWidth,
             stepHeight: stepHeight,
             cWidth: cWidth,
-            cHeight: cHeight
+            cHeight: cHeight,
+            startOffsetX: startOffsetX
         };
     };
 };
@@ -155,9 +182,12 @@ var Plot = function(canvasId){
 
         var range = max - min,
             rangeStep = range / config.stepsX,
-            curr = min;
+            curr = min,
+            i = 0;
 
-        while(curr < max){
+        while(i < config.stepsX){
+            i++;
+
             curr += rangeStep;
 
             result.push(curr);
@@ -192,7 +222,7 @@ var Plot = function(canvasId){
         while(curr < max){
             curr += rangeStep;
 
-            result.push(curr);
+            result.push(curr.toFixed(6));
         }
 
         return result;
@@ -224,35 +254,101 @@ var Drawer = function(container){
     }
 
     var date = new Date(),
-        start = date.getTime();
+        start = date.getTime() / 1000;
 
     var x = start,
-        y = randomFloatBetween(1, 4),
+        y = randomFloatBetween(2, 5),
         data = [
             [x, y]
         ];
-
-    plot.draw(data);
 
     var i = config.stepsX * 60;
 
     while(i > 0){
         i--;
-        x += 1;
-        y += randomFloatBetween(-0.05, 0.05, 3);
+        date.setSeconds(date.getSeconds() + 1);
+        x = date.getTime() / 1000;
+        y += randomFloatBetween(-0.1, 0.1, 3);
 
         data.push([x, y]);
 
-        console.log(x, y)
+        plot.draw(data);
+    }
 
-        if(data.length > 60 * config.stepsX){
+    setInterval(function(){
+        date.setSeconds(date.getSeconds() + 1);
+        x = date.getTime() / 1000;
+        y += randomFloatBetween(-0.1, 0.1, 3);
+
+        data.push([x, y]);
+
+        if(data.length > (60 * 5) - 1){
             data.shift();
         }
 
         plot.draw(data);
+    }, 1000);
+};
+
+var Data = function(){
+    var ws = new WebSocket('ws://104.131.7.135:8080/socket');
+
+    ws.onopen = function(event) {
+        var loading = document.getElementById('loading');
+
+        setTimeout(function(){
+            loading.className = 'ready';
+            loading.innerHTML = 'Connected to server';
+
+            setTimeout(function(){
+                loading.className = 'hidden';
+            }, 1500);
+        
+            ws.send(JSON.stringify({
+                action:"token",
+                message: {
+                    token: "fredclark201590@gmail.com/fredclark201590@gmail.com"
+                }
+            }));
+
+        }, 1000);
     };
+
+    ws.onmessage = function(event) {
+        var data = {};
+        try {
+            data = JSON.parse(event.data);
+        } catch(e){
+            data = {error: true};
+        }
+
+        processData(data);
+    };
+
+    function setUserData(data){
+        if(data.name){
+            var username = document.getElementById('username');
+
+            var balance = '';
+
+            if(data.balance || data.balance === 0){
+                balance = '. Your balance is <span>' + data.balance + '</span>.';
+            }
+
+            username.className = '';
+            username.innerHTML = 'Hello, ' + data.name + balance;
+        }
+    }
+
+    function processData(data){
+        if(data && data.message){
+            // First step
+            setUserData(data.message);
+        }
+    }
 };
 
 window.onload = function() {
+    new Data();
     new Drawer('scene-1');
 };

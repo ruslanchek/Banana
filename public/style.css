@@ -1,4 +1,48 @@
-canvas {
+body {
+	padding 40px;
+	font-family: Arial;
+}
+
+main {
+	width: 820px;
+	margin: 0 auto;
+}
+
+.diagram {
 	background: #f9f9f9;
 	border-radius: 5px;
+	width: 820px;
+}
+
+.diagram header {
+	padding: 30px 80px 0;
+}
+
+#loading {
+	background: #FDA656;
+	font-size: 1.2em;
+	padding: 10px 20px;
+	border-radius: 5px;
+	color: #fff;
+	margin-bottom: 20px;
+	transition: .2s;
+	-webkit-transition: .2s;
+}
+
+#loading.ready {
+	background: #3EB272;
+}
+
+.hidden {
+	opacity: 0;
+}
+
+h2 {
+	color: #666;
+	transition: .2s;
+	-webkit-transition: .2s;
+}
+
+h2 span {
+	color: #000;
 }
